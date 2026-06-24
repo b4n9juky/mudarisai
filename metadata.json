@@ -1,0 +1,6 @@
+{
+  "name": "Pembuat RPP Digital",
+  "description": "Aplikasi pembuatan Rencana Pelaksanaan Pembelajaran (RPP) yang mengintegrasikan pendekatan Deep Learning, Kurikulum Berbasis Cinta (Panca Cinta), dan Kompetensi Global untuk Guru Indonesia.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_OPENROUTER"]
+}
