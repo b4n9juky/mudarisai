@@ -14,21 +14,23 @@ export default function StepProtaProsem() {
   const renderProta = () => {
     if (!state.protaProsem) return null;
     const p = state.protaProsem;
+    const h = p.header || {} as any;
+    const prota = p.prota || { semesterGanjil: [], semesterGenap: [], totalAlokasiWaktu: '' };
 
     const rawText = [
       `PROGRAM TAHUNAN (PROTA)`,
-      `Madrasah: ${p.header.namaMadrasah}`,
-      `Guru: ${p.header.namaGuru}`,
-      `Mapel: ${p.header.mapel}`,
-      `Fase/Kelas/Smt: ${p.header.faseKelasSmt}`,
+      `Madrasah: ${h.namaMadrasah || '-'}`,
+      `Guru: ${h.namaGuru || '-'}`,
+      `Mapel: ${h.mapel || '-'}`,
+      `Fase/Kelas/Smt: ${h.faseKelasSmt || '-'}`,
       ``,
       `=== SEMESTER GANJIL ===`,
-      ...p.prota.semesterGanjil.map(r => `${r.no}. ${r.babMateri} | ${r.tujuanDanAlurPembelajaran} | ${r.alokasiWaktu}`),
+      ...(prota.semesterGanjil || []).map(r => `${r.no}. ${r.babMateri || '-'} | ${r.tujuanDanAlurPembelajaran || '-'} | ${r.alokasiWaktu || '-'}`),
       ``,
       `=== SEMESTER GENAP ===`,
-      ...p.prota.semesterGenap.map(r => `${r.no}. ${r.babMateri} | ${r.tujuanDanAlurPembelajaran} | ${r.alokasiWaktu}`),
+      ...(prota.semesterGenap || []).map(r => `${r.no}. ${r.babMateri || '-'} | ${r.tujuanDanAlurPembelajaran || '-'} | ${r.alokasiWaktu || '-'}`),
       ``,
-      `Total Alokasi Waktu: ${p.prota.totalAlokasiWaktu}`,
+      `Total Alokasi Waktu: ${prota.totalAlokasiWaktu || '-'}`,
     ].join('\n');
 
     return (
@@ -47,28 +49,28 @@ export default function StepProtaProsem() {
               </thead>
               <tbody>
                 <tr className="bg-emerald-50/50"><td colSpan={4} className="p-2 text-xs font-bold text-emerald-700">Semester Ganjil</td></tr>
-                {p.prota.semesterGanjil.map(r => (
+                {(prota.semesterGanjil || []).map(r => (
                   <tr key={r.no}>
                     <td className="border border-slate-200 p-2">{r.no}</td>
-                    <td className="border border-slate-200 p-2">{r.babMateri}</td>
-                    <td className="border border-slate-200 p-2 text-slate-500">{r.tujuanDanAlurPembelajaran}</td>
-                    <td className="border border-slate-200 p-2 font-semibold">{r.alokasiWaktu}</td>
+                    <td className="border border-slate-200 p-2">{r.babMateri || '-'}</td>
+                    <td className="border border-slate-200 p-2 text-slate-500">{r.tujuanDanAlurPembelajaran || '-'}</td>
+                    <td className="border border-slate-200 p-2 font-semibold">{r.alokasiWaktu || '-'}</td>
                   </tr>
                 ))}
                 <tr className="bg-sky-50/50"><td colSpan={4} className="p-2 text-xs font-bold text-sky-700">Semester Genap</td></tr>
-                {p.prota.semesterGenap.map(r => (
+                {(prota.semesterGenap || []).map(r => (
                   <tr key={r.no}>
                     <td className="border border-slate-200 p-2">{r.no}</td>
-                    <td className="border border-slate-200 p-2">{r.babMateri}</td>
-                    <td className="border border-slate-200 p-2 text-slate-500">{r.tujuanDanAlurPembelajaran}</td>
-                    <td className="border border-slate-200 p-2 font-semibold">{r.alokasiWaktu}</td>
+                    <td className="border border-slate-200 p-2">{r.babMateri || '-'}</td>
+                    <td className="border border-slate-200 p-2 text-slate-500">{r.tujuanDanAlurPembelajaran || '-'}</td>
+                    <td className="border border-slate-200 p-2 font-semibold">{r.alokasiWaktu || '-'}</td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
                 <tr className="bg-slate-100 font-bold">
                   <td colSpan={3} className="border border-slate-200 p-2 text-right">Total:</td>
-                  <td className="border border-slate-200 p-2">{p.prota.totalAlokasiWaktu}</td>
+                  <td className="border border-slate-200 p-2">{prota.totalAlokasiWaktu || '-'}</td>
                 </tr>
               </tfoot>
             </table>
@@ -76,25 +78,25 @@ export default function StepProtaProsem() {
 
           <div>
             <h4 className="text-sm font-bold text-slate-700 mb-3">Program Semester (PROSEM) — Ganjil</h4>
-            <p className="text-xs text-slate-500 mb-2">Bulan: {p.prosemGanjil.bulan.join(', ')}</p>
+            <p className="text-xs text-slate-500 mb-2">Bulan: {((p.prosemGanjil||{}).bulan||[]).join(', ') || '-'}</p>
             <table className="w-full text-[10px] border-collapse">
               <thead>
                 <tr className="bg-slate-100">
                   <th className="border border-slate-200 p-1 text-left">No</th>
                   <th className="border border-slate-200 p-1 text-left">Bab</th>
                   <th className="border border-slate-200 p-1 text-left">JP</th>
-                  {p.prosemGanjil.materiRows[0]?.mingguMaping.map((_, w) => (
+                  {((p.prosemGanjil||{}).materiRows||[])[0]?.mingguMaping.map((_, w) => (
                     <th key={w} className="border border-slate-200 p-1 w-6 text-[8px]">{'M' + (w + 1)}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {p.prosemGanjil.materiRows.map(r => (
+                {((p.prosemGanjil||{}).materiRows||[]).map(r => (
                   <tr key={r.no}>
                     <td className="border border-slate-200 p-1">{r.no}</td>
-                    <td className="border border-slate-200 p-1">{r.babMateri}</td>
-                    <td className="border border-slate-200 p-1 font-semibold">{r.alokasiWaktu}</td>
-                    {r.mingguMaping.map((val, w) => (
+                    <td className="border border-slate-200 p-1">{r.babMateri || '-'}</td>
+                    <td className="border border-slate-200 p-1 font-semibold">{r.alokasiWaktu || '-'}</td>
+                    {(r.mingguMaping||[]).map((val, w) => (
                       <td key={w} className={`border border-slate-200 p-1 text-center ${val ? 'bg-emerald-100 text-emerald-700 font-bold' : 'text-slate-300'}`}>{val || '-'}</td>
                     ))}
                   </tr>
@@ -105,25 +107,25 @@ export default function StepProtaProsem() {
 
           <div>
             <h4 className="text-sm font-bold text-slate-700 mb-3">Program Semester (PROSEM) — Genap</h4>
-            <p className="text-xs text-slate-500 mb-2">Bulan: {p.prosemGenap.bulan.join(', ')}</p>
+            <p className="text-xs text-slate-500 mb-2">Bulan: {((p.prosemGenap||{}).bulan||[]).join(', ') || '-'}</p>
             <table className="w-full text-[10px] border-collapse">
               <thead>
                 <tr className="bg-slate-100">
                   <th className="border border-slate-200 p-1 text-left">No</th>
                   <th className="border border-slate-200 p-1 text-left">Bab</th>
                   <th className="border border-slate-200 p-1 text-left">JP</th>
-                  {p.prosemGenap.materiRows[0]?.mingguMaping.map((_, w) => (
+                  {((p.prosemGenap||{}).materiRows||[])[0]?.mingguMaping.map((_, w) => (
                     <th key={w} className="border border-slate-200 p-1 w-6 text-[8px]">{'M' + (w + 1)}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {p.prosemGenap.materiRows.map(r => (
+                {((p.prosemGenap||{}).materiRows||[]).map(r => (
                   <tr key={r.no}>
                     <td className="border border-slate-200 p-1">{r.no}</td>
-                    <td className="border border-slate-200 p-1">{r.babMateri}</td>
-                    <td className="border border-slate-200 p-1 font-semibold">{r.alokasiWaktu}</td>
-                    {r.mingguMaping.map((val, w) => (
+                    <td className="border border-slate-200 p-1">{r.babMateri || '-'}</td>
+                    <td className="border border-slate-200 p-1 font-semibold">{r.alokasiWaktu || '-'}</td>
+                    {(r.mingguMaping||[]).map((val, w) => (
                       <td key={w} className={`border border-slate-200 p-1 text-center ${val ? 'bg-sky-100 text-sky-700 font-bold' : 'text-slate-300'}`}>{val || '-'}</td>
                     ))}
                   </tr>
@@ -134,9 +136,9 @@ export default function StepProtaProsem() {
 
           <div className="bg-slate-50 rounded-lg p-3">
             <h4 className="text-sm font-bold text-slate-700 mb-1">Analisis Minggu Efektif</h4>
-            <p className="text-xs text-slate-600">Ganjil: {p.analisisMingguEfektif.totalMingguEfektifGanjil}</p>
-            <p className="text-xs text-slate-600">Genap: {p.analisisMingguEfektif.totalMingguEfektifGenap}</p>
-            <p className="text-xs text-slate-500 mt-1">{p.analisisMingguEfektif.keteranganEfektifitas}</p>
+            <p className="text-xs text-slate-600">Ganjil: {((p.analisisMingguEfektif||{}).totalMingguEfektifGanjil||'-')}</p>
+            <p className="text-xs text-slate-600">Genap: {((p.analisisMingguEfektif||{}).totalMingguEfektifGenap||'-')}</p>
+            <p className="text-xs text-slate-500 mt-1">{(p.analisisMingguEfektif||{}).keteranganEfektifitas || '-'}</p>
           </div>
         </div>
       </DocumentViewer>

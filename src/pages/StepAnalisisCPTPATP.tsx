@@ -21,17 +21,17 @@ export default function StepAnalisisCPTPATP() {
         title="Analisis Capaian Pembelajaran (CP)"
         icon={<Sparkles className="w-4 h-4 text-emerald-600" />}
         rawText={[
-          `CAPAIAN PEMBELAJARAN:\n${cp.capaianPembelajaran}`,
-          `\nANALISIS KOMPETENSI:\n${cp.analisisKompetensi}`,
-          `\nKARAKTERISTIK MATA PELAJARAN:\n${cp.karakteristikMapel}`,
-          `\nREKOMENDASI PENDEKATAN:\n${cp.rekomendasiPendekatan}`,
+          `CAPAIAN PEMBELAJARAN:\n${cp.capaianPembelajaran || '-'}`,
+          `\nANALISIS KOMPETENSI:\n${cp.analisisKompetensi || '-'}`,
+          `\nKARAKTERISTIK MATA PELAJARAN:\n${cp.karakteristikMapel || '-'}`,
+          `\nREKOMENDASI PENDEKATAN:\n${cp.rekomendasiPendekatan || '-'}`,
         ].join('\n')}
       >
         <div className="space-y-4">
-          <Section title="Capaian Pembelajaran" text={cp.capaianPembelajaran} />
-          <Section title="Analisis Kompetensi" text={cp.analisisKompetensi} />
-          <Section title="Karakteristik Mata Pelajaran" text={cp.karakteristikMapel} />
-          <Section title="Rekomendasi Pendekatan" text={cp.rekomendasiPendekatan} />
+          <Section title="Capaian Pembelajaran" text={cp.capaianPembelajaran || '-'} />
+          <Section title="Analisis Kompetensi" text={cp.analisisKompetensi || '-'} />
+          <Section title="Karakteristik Mata Pelajaran" text={cp.karakteristikMapel || '-'} />
+          <Section title="Rekomendasi Pendekatan" text={cp.rekomendasiPendekatan || '-'} />
         </div>
       </DocumentViewer>
     );
@@ -40,31 +40,33 @@ export default function StepAnalisisCPTPATP() {
   const renderTP = () => {
     if (!state.tp) return null;
     const tp = state.tp;
+    const tujuanList = tp.tujuanList || [];
+    const kataKunci = tp.kataKunci || [];
     return (
       <DocumentViewer
         title="Tujuan Pembelajaran (TP)"
         icon={<Sparkles className="w-4 h-4 text-emerald-600" />}
         rawText={[
           'TUJUAN PEMBELAJARAN:',
-          ...tp.tujuanList.map((t, i) => `${i + 1}. ${t}`),
-          `\nRASIONAL:\n${tp.rasional}`,
-          `\nKATA KUNCI:\n${tp.kataKunci.join(', ')}`,
+          ...tujuanList.map((t, i) => `${i + 1}. ${t}`),
+          `\nRASIONAL:\n${tp.rasional || '-'}`,
+          `\nKATA KUNCI:\n${kataKunci.join(', ') || '-'}`,
         ].join('\n')}
       >
         <div className="space-y-4">
           <div>
             <h4 className="text-sm font-bold text-slate-700 mb-2">Tujuan Pembelajaran</h4>
             <ol className="list-decimal list-inside space-y-2">
-              {tp.tujuanList.map((t, i) => (
+              {tujuanList.map((t, i) => (
                 <li key={i} className="text-sm text-slate-600 leading-relaxed">{t}</li>
               ))}
             </ol>
           </div>
-          <Section title="Rasional" text={tp.rasional} />
+          <Section title="Rasional" text={tp.rasional || '-'} />
           <div>
             <h4 className="text-sm font-bold text-slate-700 mb-2">Kata Kunci Operasional</h4>
             <div className="flex flex-wrap gap-2">
-              {tp.kataKunci.map((k, i) => (
+              {kataKunci.map((k, i) => (
                 <span key={i} className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs font-semibold">{k}</span>
               ))}
             </div>
@@ -77,32 +79,33 @@ export default function StepAnalisisCPTPATP() {
   const renderATP = () => {
     if (!state.atp) return null;
     const atp = state.atp;
+    const alur = atp.alur || [];
     return (
       <DocumentViewer
         title="Alur Tujuan Pembelajaran (ATP)"
         icon={<Sparkles className="w-4 h-4 text-emerald-600" />}
         rawText={[
           'ALUR TUJUAN PEMBELAJARAN:',
-          ...atp.alur.map(b => `${b.bab}: ${b.tp.join(', ')} (${b.alokasiWaktu}, ${b.minggu})`),
-          `\nTotal Jam: ${atp.totalJam}`,
+          ...alur.map(b => `${b.bab || '-'}: ${(b.tp||[]).join(', ')} (${b.alokasiWaktu || '-'}, ${b.minggu || '-'})`),
+          `\nTotal Jam: ${atp.totalJam || '-'}`,
         ].join('\n')}
       >
         <div className="space-y-4">
           <h4 className="text-sm font-bold text-slate-700">Alur Tujuan Pembelajaran</h4>
-          {atp.alur.map((bab, i) => (
+          {alur.map((bab, i) => (
             <div key={i} className="border border-slate-200 rounded-lg p-3">
               <div className="flex items-center justify-between mb-2">
-                <h5 className="text-sm font-bold text-emerald-700">{bab.bab}</h5>
-                <span className="text-[10px] text-slate-400">{bab.minggu} | {bab.alokasiWaktu}</span>
+                <h5 className="text-sm font-bold text-emerald-700">{bab.bab || '-'}</h5>
+                <span className="text-[10px] text-slate-400">{bab.minggu || '-'} | {bab.alokasiWaktu || '-'}</span>
               </div>
               <ul className="list-disc list-inside space-y-1">
-                {bab.tp.map((t, j) => (
+                {(bab.tp||[]).map((t, j) => (
                   <li key={j} className="text-xs text-slate-600">{t}</li>
                 ))}
               </ul>
             </div>
           ))}
-          <p className="text-xs text-slate-500 font-semibold">Total Jam: {atp.totalJam}</p>
+          <p className="text-xs text-slate-500 font-semibold">Total Jam: {atp.totalJam || '-'}</p>
         </div>
       </DocumentViewer>
     );

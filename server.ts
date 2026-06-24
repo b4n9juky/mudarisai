@@ -403,27 +403,32 @@ async function startServer() {
         madrasahId = madrasahResult.rows[0].id;
       }
 
-      // Find or create guru
+      // Ensure guru record exists for this madrasah
       let guruResult = await dbQuery(
         "SELECT id FROM tbl_guru WHERE nama = $1 AND madrasah_id = $2",
         [namaGuru, madrasahId]
       );
-      let guruId: number;
       if (guruResult.rows.length === 0) {
-        const insert = await dbQuery(
-          "INSERT INTO tbl_guru (nama, madrasah_id) VALUES ($1, $2) RETURNING id",
+        await dbQuery(
+          "INSERT INTO tbl_guru (nama, madrasah_id) VALUES ($1, $2)",
           [namaGuru, madrasahId]
         );
-        guruId = insert.rows[0].id;
-      } else {
-        guruId = guruResult.rows[0].id;
+      }
+
+      // Use logged-in user's guru_id for pipeline ownership
+      const userResult = await dbQuery(
+        "SELECT guru_id FROM tbl_users WHERE id = $1", [user.userId]
+      );
+      const userGuruId = userResult.rows[0]?.guru_id;
+      if (!userGuruId) {
+        return res.status(400).json({ error: "Akun guru tidak memiliki relasi guru_id. Hubungi admin." });
       }
 
       // Create pipeline
       const pipelineResult = await dbQuery(
         `INSERT INTO tbl_pipeline (guru_id, mapel, kelas_fase, semester, status)
          VALUES ($1, $2, $3, $4, 'in_progress') RETURNING id, mapel, kelas_fase, semester, status, created_at`,
-        [guruId, mapel, kelasFase, semester]
+        [userGuruId, mapel, kelasFase, semester]
       );
 
       res.json({ pipeline: pipelineResult.rows[0] });
@@ -482,7 +487,7 @@ async function startServer() {
       }
 
       // Fetch all related data
-      const [analisisCP, tp, atp, protaProsem, modulAjar, lkpd, asesmenRubrik] = await Promise.all([
+      const [analisisCP, tp, atp, protaProsem, modulAjar, lkpd, asesmenRubrik, lessons] = await Promise.all([
         dbQuery("SELECT * FROM tbl_analisis_cp WHERE pipeline_id = $1", [id]),
         dbQuery("SELECT * FROM tbl_tp WHERE pipeline_id = $1", [id]),
         dbQuery("SELECT * FROM tbl_atp WHERE pipeline_id = $1", [id]),
@@ -490,6 +495,7 @@ async function startServer() {
         dbQuery("SELECT * FROM tbl_modul_ajar WHERE pipeline_id = $1", [id]),
         dbQuery("SELECT * FROM tbl_lkpd WHERE pipeline_id = $1", [id]),
         dbQuery("SELECT * FROM tbl_asesmen_rubrik WHERE pipeline_id = $1", [id]),
+        dbQuery("SELECT * FROM tbl_lessons WHERE pipeline_id = $1 ORDER BY pertemuan_ke", [id]),
       ]);
 
       const mapAnalisisCP = (r: any) => r ? {
@@ -524,12 +530,24 @@ async function startServer() {
         analisisMingguEfektif: r.analisis_minggu_efektif || { totalMingguEfektifGanjil: '', totalMingguEfektifGenap: '', keteranganEfektifitas: '' },
       } : null;
 
-      const mapModulAjar = (r: any) => r ? {
-        header: r.header || {},
-        identifikasi: r.identifikasi || {},
-        desain: r.desain || {},
-        pengalaman: r.pengalaman || {},
-      } : null;
+      const mapModulAjar = (r: any, lessonsRows: any[]) => {
+        if (!r) return null;
+        const pengalaman = r.pengalaman || {};
+        if (lessonsRows.length > 0) {
+          pengalaman.pertemuan = lessonsRows.map((l: any) => ({
+            pertemuan: l.pertemuan_ke,
+            topik: l.topik,
+            durasi: l.durasi,
+            pertanyaanPemantik: l.pertanyaan_pemantik,
+            kegiatanAwal: l.kegiatan_awal,
+            kegiatanIntiMenit: l.kegiatan_inti_menit || {},
+            opsiKelompok: l.opsi_kelompok,
+            opsiMandiri: l.opsi_mandiri,
+            kegiatanPenutup: l.kegiatan_penutup,
+          }));
+        }
+        return { header: r.header || {}, identifikasi: r.identifikasi || {}, desain: r.desain || {}, pengalaman };
+      };
 
       const mapLKPD = (r: any) => r ? {
         header: r.header || {},
@@ -565,7 +583,7 @@ async function startServer() {
         tp: mapTP(tp.rows[0]),
         atp: mapATP(atp.rows[0]),
         protaProsem: mapProtaProsem(protaProsem.rows[0]),
-        modulAjar: mapModulAjar(modulAjar.rows[0]),
+        modulAjar: mapModulAjar(modulAjar.rows[0], lessons.rows),
         lkpd: mapLKPD(lkpd.rows[0]),
         asesmenRubrik: mapAsesmenRubrik(asesmenRubrik.rows[0]),
       });
@@ -814,19 +832,17 @@ WAJIB keluarkan JSON dengan struktur persis seperti ini:
     }
   });
 
-  // 5. Modul Ajar
+  // 5. Modul Ajar — Per Pertemuan (Point 5)
   app.post("/api/pipeline/generate-modul-ajar", authenticate, async (req, res) => {
     try {
       const { pipelineId, input, analisisCP, tp, atp } = req.body;
       if (!apiKey) throw new Error("OPENROUTER_API_KEY belum dikonfigurasi.");
 
-      const prompt = `Kamu adalah asisten penyusun RPP ${input?.mapel}. Dalam menyusun kegiatan awal dan inti, kamu WAJIB:
+      const totalJP = tp?.tujuanList?.length ? tp.tujuanList.length * 2 : 4;
+      const alokasiTotal = `${totalJP} JP`;
+      const jumlahPertemuan = Math.ceil(totalJP / 2) || 2;
 
-1. Membuat minimal 1 pertanyaan pemantik yang secara spesifik mengaitkan konsep visual (tekstur, warna, atau pola) dengan benda/situasi dalam kehidupan sehari-hari siswa.
-
-2. Menyertakan 1 kegiatan eksplorasi di luar kelas yang berdurasi tepat 15 menit, dengan rincian waktu (menit per menit) agar siswa tetap fokus pada misi visual mereka.
-
-Buatkan Modul Ajar / Rencana Pelaksanaan Pembelajaran (RPP) yang mendalam (Deep Learning), berbasis Kompetensi Global, dan mengintegrasikan Kurikulum Berbasis Cinta (Panca Cinta).
+      const prompt = `Kamu adalah kurikulum desainer yang praktis. Berdasarkan topik dari Prosem dan alokasi waktu yang tersedia (${alokasiTotal}), breakdown RPP menjadi rencana aktivitas per tatap muka (${jumlahPertemuan} Pertemuan).
 
 IDENTITAS:
 - Nama Madrasah: ${input?.namaMadrasah || "-"}
@@ -840,14 +856,18 @@ ${analisisCP?.capaianPembelajaran || "-"}
 TUJUAN PEMBELAJARAN:
 ${(tp?.tujuanList || []).map((t: string, i: number) => `${i + 1}. ${t}`).join("\n")}
 
-Setiap TP WAJIB diakhiri dengan frasa cinta dari Panca Cinta.
-Gunakan pendekatan DEEP LEARNING (Mindful, Meaningful, Joyful).
-Langkah pembelajaran: Memahami, Mengaplikasi, Merefleksi.
+Untuk setiap pertemuan, wajib memiliki struktur kronologis berikut:
+1. Identitas Pertemuan: (Pertemuan Ke-X, Alokasi Waktu: X menit).
+2. Pertanyaan Pemantik Kontekstual: 1 Pertanyaan yang mengaitkan materi pertemuan itu dengan kehidupan nyata siswa kelas ${input?.kelasFase}.
+3. Kegiatan Awal (10-15 Menit): Langkah konkret guru membuka kelas dan melakukan apersepsi.
+4. Kegiatan Inti (Durasi Menyesuaikan): Wajib menyertakan Misi Eksplorasi berdurasi 15 menit dengan rincian waktu menit-demi-menit yang jelas.
+5. Opsi Tindak Lanjut Dinamis: Sediakan panduan spesifik untuk [Opsi Kelompok] dan [Opsi Mandiri] setelah eksplorasi selesai.
+6. Kegiatan Penutup (10-15 Menit): Langkah guru membuat kesimpulan dan refleksi.
 
 WAJIB keluarkan JSON dengan struktur:
 {
   "modulAjar": {
-    "header": { "namaMadrasah": "", "namaGuru": "", "mapel": "", "faseKelasSmt": "", "materi": "Materi Pokok", "alokasiWaktu": "2 x 45 Menit" },
+    "header": { "namaMadrasah": "", "namaGuru": "", "mapel": "", "faseKelasSmt": "", "materi": "Materi Pokok", "alokasiWaktu": "${alokasiTotal}" },
     "identifikasi": { "pesertaDidikDetail": "", "materiPelajaranCP": "", "dimensiProfil": [""], "kurikulumPancaCinta": [""] },
     "desain": {
       "capaianPembelajaran": "",
@@ -861,7 +881,19 @@ WAJIB keluarkan JSON dengan struktur:
     },
     "pengalaman": {
       "prinsipPembelajaran": "",
-      "langkahPembelajaran": { "memahami": [""], "mengaplikasi": [""], "merefleksi": [""] },
+      "pertemuan": [
+        {
+          "pertemuan": 1,
+          "topik": "Komponen Biotik dan Abiotik",
+          "durasi": "2 JP (2 x 45 Menit)",
+          "pertanyaanPemantik": "Pertanyaan kontekstual...",
+          "kegiatanAwal": "Langkah apersepsi...",
+          "kegiatanIntiMenit": { "namaMisi": "Eksplorasi...", "menit_1_3": "...", "menit_4_12": "...", "menit_13_15": "..." },
+          "opsiKelompok": "Panduan kerja kelompok...",
+          "opsiMandiri": "Panduan kerja mandiri...",
+          "kegiatanPenutup": "Kesimpulan dan refleksi..."
+        }
+      ],
       "asesmenPembelajaran": { "awal": "", "proses": "", "akhir": "" },
       "rubrikPenilaian": [{ "aspek": "", "kriteriaSangatBaik": "", "kriteriaBaik": "", "kriteriaCukup": "", "kriteriaPerluBimbingan": "" }],
       "refleksiSiswa": [""],
@@ -890,6 +922,20 @@ WAJIB keluarkan JSON dengan struktur:
          JSON.stringify(modulAjar.desain || {}),
          JSON.stringify(modulAjar.pengalaman || {})]
       );
+
+      // Save per-meeting lessons
+      const lessons = modulAjar.pengalaman?.pertemuan || [];
+      if (lessons.length > 0) {
+        await dbQuery("DELETE FROM tbl_lessons WHERE pipeline_id = $1", [pipelineId]);
+        for (const l of lessons) {
+          await dbQuery(
+            `INSERT INTO tbl_lessons (pipeline_id, pertemuan_ke, topik, durasi, pertanyaan_pemantik, kegiatan_awal, kegiatan_inti_menit, opsi_kelompok, opsi_mandiri, kegiatan_penutup)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+            [pipelineId, l.pertemuan, l.topik, l.durasi, l.pertanyaanPemantik, l.kegiatanAwal,
+             JSON.stringify(l.kegiatanIntiMenit || {}), l.opsiKelompok, l.opsiMandiri, l.kegiatanPenutup]
+          );
+        }
+      }
 
       res.json({ modulAjar });
     } catch (err: any) {

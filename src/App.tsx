@@ -12,7 +12,8 @@ import StepModulAjar from './pages/StepModulAjar';
 import StepLKPD from './pages/StepLKPD';
 import StepAssessmentRubrik from './pages/StepAssessmentRubrik';
 import AdminDashboard from './pages/AdminDashboard';
-import { Sparkles, Shield, LogOut, ChevronDown } from 'lucide-react';
+import GuruDashboard from './pages/GuruDashboard';
+import { Sparkles, Shield, LogOut, ChevronDown, LayoutDashboard } from 'lucide-react';
 import { useState } from 'react';
 
 function DashboardHeader() {
@@ -77,10 +78,41 @@ function PipelineDashboard() {
   const { state, dispatch } = usePipeline();
   const { isAdmin } = useAuth();
   const { state: authState } = useAuth();
+  const [showGuruDashboard, setShowGuruDashboard] = useState(state.currentStep === 0);
+
+  const handleStartNew = () => {
+    setShowGuruDashboard(false);
+    dispatch({ type: 'SET_STEP', payload: 0 });
+  };
+
+  const handleBackToDashboard = () => {
+    setShowGuruDashboard(true);
+    dispatch({ type: 'SET_STEP', payload: 0 });
+  };
+
+  // When step changes away from 0, hide dashboard
+  const showDash = showGuruDashboard && state.currentStep === 0 && !isAdmin;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased flex flex-col">
       <DashboardHeader />
+
+      {/* Guru Dashboard button */}
+      <RoleGuard roles={['guru']}>
+        <div className="px-6 pt-2 no-print">
+          <button
+            onClick={showDash ? undefined : handleBackToDashboard}
+            className={`px-3 py-1 text-[10px] font-bold rounded border transition-colors ${
+              showDash
+                ? 'bg-emerald-100 text-emerald-700 border-emerald-200 cursor-default'
+                : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200'
+            }`}
+          >
+            <LayoutDashboard className="w-3 h-3 inline mr-1" />
+            Dashboard
+          </button>
+        </div>
+      </RoleGuard>
 
       {/* Admin shortcut */}
       <RoleGuard roles={['admin']}>
@@ -104,34 +136,42 @@ function PipelineDashboard() {
         </div>
       </RoleGuard>
 
-      {/* Step Indicator */}
-      <div className="px-6">
-        <StepIndicator />
-      </div>
-
-      {/* Main Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6">
-        {state.error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 flex items-center gap-2">
-            <span>⚠</span>
-            <span>{state.error}</span>
-            <button
-              onClick={() =>             dispatch({ type: 'CLEAR_ERROR' })}
-              className="ml-auto text-red-400 hover:text-red-600 font-bold"
-            >
-              Tutup
-            </button>
+      {showDash ? (
+        <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6">
+          <GuruDashboard onStartNew={handleStartNew} />
+        </main>
+      ) : (
+        <>
+          {/* Step Indicator */}
+          <div className="px-6">
+            <StepIndicator />
           </div>
-        )}
 
-        {/* Pipeline Steps */}
-        {state.currentStep === 0 && <StepInput />}
-        {state.currentStep === 1 && <StepAnalisisCPTPATP />}
-        {state.currentStep === 2 && <StepProtaProsem />}
-        {state.currentStep === 3 && <StepModulAjar />}
-        {state.currentStep === 4 && <StepLKPD />}
-        {state.currentStep === 5 && <StepAssessmentRubrik />}
-      </main>
+          {/* Main Content */}
+          <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6">
+            {state.error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 flex items-center gap-2">
+                <span>⚠</span>
+                <span>{state.error}</span>
+                <button
+                  onClick={() => dispatch({ type: 'CLEAR_ERROR' })}
+                  className="ml-auto text-red-400 hover:text-red-600 font-bold"
+                >
+                  Tutup
+                </button>
+              </div>
+            )}
+
+            {/* Pipeline Steps */}
+            {state.currentStep === 0 && <StepInput onStartNew={handleStartNew} />}
+            {state.currentStep === 1 && <StepAnalisisCPTPATP />}
+            {state.currentStep === 2 && <StepProtaProsem />}
+            {state.currentStep === 3 && <StepModulAjar />}
+            {state.currentStep === 4 && <StepLKPD />}
+            {state.currentStep === 5 && <StepAssessmentRubrik />}
+          </main>
+        </>
+      )}
 
       <Footer />
     </div>

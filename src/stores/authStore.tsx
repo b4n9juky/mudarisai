@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
 import type { User, AuthState } from '../types/auth';
 import { authApi } from '../lib/api';
 
@@ -66,6 +66,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     error: '',
   });
 
+  const dispatchRef = useRef(dispatch);
+  dispatchRef.current = dispatch;
+
   useEffect(() => {
     if (state.token) {
       authApi.me()
@@ -89,6 +92,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
+  }, []);
+
+  useEffect(() => {
+    function onAuthExpired() {
+      clearAuth();
+      dispatchRef.current({ type: 'LOGOUT' });
+    }
+    window.addEventListener('auth:expired', onAuthExpired);
+    return () => window.removeEventListener('auth:expired', onAuthExpired);
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {

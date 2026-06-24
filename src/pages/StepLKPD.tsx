@@ -9,18 +9,21 @@ export default function StepLKPD() {
   const renderLKPD = () => {
     if (!state.lkpd) return null;
     const l = state.lkpd;
+    const h = l.header || {} as any;
+    const stimulus = l.stimulusKontekstual || {} as any;
+    const aktivitas = l.aktivitas || {} as any;
 
     const rawText = [
       `LEMBAR KERJA PESERTA DIDIK (LKPD)`,
-      `Madrasah: ${l.header.namaMadrasah}`,
-      `Mapel: ${l.header.mapel}`,
-      `Materi: ${l.header.materi}`,
-      `TP: ${l.header.tujuanPembelajaran}`,
+      `Madrasah: ${h.namaMadrasah || '-'}`,
+      `Mapel: ${h.mapel || '-'}`,
+      `Materi: ${h.materi || '-'}`,
+      `TP: ${h.tujuanPembelajaran || '-'}`,
       ``,
-      `STIMULUS: ${l.stimulusKontekstual.judul}`,
-      l.stimulusKontekstual.narasi,
+      `STIMULUS: ${stimulus.judul || '-'}`,
+      stimulus.narasi || '-',
       ``,
-      ...l.pertanyaanC1C6.map(q => `${q.level}: ${q.pertanyaan}`),
+      ...(l.pertanyaanC1C6||[]).map(q => `${q.level || '-'}: ${q.pertanyaan || '-'}`),
     ].join('\n');
 
     return (
@@ -30,11 +33,11 @@ export default function StepLKPD() {
             <h3 className="text-base font-bold text-slate-800 text-center mb-3">LEMBAR KERJA PESERTA DIDIK (LKPD)</h3>
             <table className="w-full text-xs">
               <tbody>
-                <tr><td className="font-semibold text-slate-600 p-1 w-40">Madrasah</td><td>: {l.header.namaMadrasah}</td></tr>
-                <tr><td className="font-semibold text-slate-600 p-1">Mapel</td><td>: {l.header.mapel}</td></tr>
-                <tr><td className="font-semibold text-slate-600 p-1">Materi</td><td>: {l.header.materi}</td></tr>
-                <tr><td className="font-semibold text-slate-600 p-1">Alokasi Waktu</td><td>: {l.header.alokasiWaktu}</td></tr>
-                <tr><td className="font-semibold text-slate-600 p-1">TP</td><td>: {l.header.tujuanPembelajaran}</td></tr>
+                <tr><td className="font-semibold text-slate-600 p-1 w-40">Madrasah</td><td>: {h.namaMadrasah || '-'}</td></tr>
+                <tr><td className="font-semibold text-slate-600 p-1">Mapel</td><td>: {h.mapel || '-'}</td></tr>
+                <tr><td className="font-semibold text-slate-600 p-1">Materi</td><td>: {h.materi || '-'}</td></tr>
+                <tr><td className="font-semibold text-slate-600 p-1">Alokasi Waktu</td><td>: {h.alokasiWaktu || '-'}</td></tr>
+                <tr><td className="font-semibold text-slate-600 p-1">TP</td><td>: {h.tujuanPembelajaran || '-'}</td></tr>
               </tbody>
             </table>
           </div>
@@ -42,35 +45,35 @@ export default function StepLKPD() {
           <div>
             <h4 className="font-bold text-emerald-700 mb-2">Petunjuk Kerja</h4>
             <ol className="list-decimal list-inside text-xs text-slate-600 space-y-1">
-              {l.petunjukKerja.map((p, i) => <li key={i}>{p}</li>)}
+              {(l.petunjukKerja||[]).map((p, i) => <li key={i}>{p}</li>)}
             </ol>
           </div>
 
           <div className="bg-slate-50 rounded-lg p-4">
             <h4 className="font-bold text-emerald-700 mb-2">Stimulus Kontekstual</h4>
-            <p className="text-xs font-semibold text-slate-700 mb-1">{l.stimulusKontekstual.judul}</p>
-            <p className="text-xs text-slate-600 leading-relaxed">{l.stimulusKontekstual.narasi}</p>
+            <p className="text-xs font-semibold text-slate-700 mb-1">{stimulus.judul || '-'}</p>
+            <p className="text-xs text-slate-600 leading-relaxed">{stimulus.narasi || '-'}</p>
           </div>
 
           <div>
             <h4 className="font-bold text-emerald-700 mb-2">Aktivitas</h4>
-            <p className="text-xs text-slate-600 mb-1"><span className="font-semibold">Jenis:</span> {l.aktivitas.jenis}</p>
-            <p className="text-xs text-slate-600 mb-1"><span className="font-semibold">Aktivitas:</span> {l.aktivitas.namaAktivitas}</p>
+            <p className="text-xs text-slate-600 mb-1"><span className="font-semibold">Jenis:</span> {aktivitas.jenis || '-'}</p>
+            <p className="text-xs text-slate-600 mb-1"><span className="font-semibold">Aktivitas:</span> {aktivitas.namaAktivitas || '-'}</p>
             <ol className="list-decimal list-inside text-xs text-slate-600 space-y-0.5">
-              {l.aktivitas.panduanLangkah.map((step, i) => <li key={i}>{step}</li>)}
+              {(aktivitas.panduanLangkah||[]).map((step, i) => <li key={i}>{step}</li>)}
             </ol>
           </div>
 
           <div>
             <h4 className="font-bold text-emerald-700 mb-2">Pertanyaan Berjenjang C1-C6</h4>
             <div className="space-y-3">
-              {l.pertanyaanC1C6.map((q, i) => (
+              {(l.pertanyaanC1C6||[]).map((q, i) => (
                 <div key={i} className="border border-slate-200 rounded-lg p-3">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded">{q.level}</span>
+                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded">{q.level || '-'}</span>
                   </div>
-                  <p className="text-xs text-slate-700 mb-1">{q.pertanyaan}</p>
-                  <p className="text-[10px] text-slate-400 italic">Petunjuk: {q.petunjukJawaban}</p>
+                  <p className="text-xs text-slate-700 mb-1">{q.pertanyaan || '-'}</p>
+                  <p className="text-[10px] text-slate-400 italic">Petunjuk: {q.petunjukJawaban || '-'}</p>
                 </div>
               ))}
             </div>
@@ -78,15 +81,15 @@ export default function StepLKPD() {
 
           <div>
             <h4 className="font-bold text-emerald-700 mb-2">Kesimpulan</h4>
-            <p className="text-xs text-slate-600">{l.kesimpulan}</p>
+            <p className="text-xs text-slate-600">{l.kesimpulan || '-'}</p>
           </div>
 
           {l.refleksi && (
             <div>
               <h4 className="font-bold text-emerald-700 mb-2">Refleksi</h4>
-              <p className="text-xs text-slate-600 mb-2">{l.refleksi.instruksi}</p>
+              <p className="text-xs text-slate-600 mb-2">{l.refleksi.instruksi || '-'}</p>
               <ul className="list-disc list-inside text-xs text-slate-600 space-y-0.5">
-                {l.refleksi.pertanyaan.map((p, i) => <li key={i}>{p}</li>)}
+                {(l.refleksi.pertanyaan||[]).map((p, i) => <li key={i}>{p}</li>)}
               </ul>
             </div>
           )}

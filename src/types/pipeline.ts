@@ -83,6 +83,18 @@ export interface ProtaProsemData {
   };
 }
 
+export interface LessonData {
+  pertemuan: number;
+  topik: string;
+  durasi: string;
+  pertanyaanPemantik: string;
+  kegiatanAwal: string;
+  kegiatanIntiMenit: Record<string, string>;
+  opsiKelompok: string;
+  opsiMandiri: string;
+  kegiatanPenutup: string;
+}
+
 export interface ModulAjarData {
   header: {
     namaMadrasah: string;
@@ -110,11 +122,7 @@ export interface ModulAjarData {
   };
   pengalaman: {
     prinsipPembelajaran: string;
-    langkahPembelajaran: {
-      memahami: string[];
-      mengaplikasi: string[];
-      merefleksi: string[];
-    };
+    pertemuan: LessonData[];
     asesmenPembelajaran: {
       awal: string;
       proses: string;

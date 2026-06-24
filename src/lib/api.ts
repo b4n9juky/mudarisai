@@ -33,6 +33,7 @@ export async function apiFetch<T>(
     const isLoginRequest = endpoint === '/api/auth/login';
     if (!isLoginRequest) {
       localStorage.removeItem('mudaris_auth');
+      window.dispatchEvent(new CustomEvent('auth:expired'));
     }
     throw new Error('Sesi habis. Silakan login ulang.');
   }

@@ -15,13 +15,17 @@ export default function StepAssessmentRubrik() {
   const renderAssessment = () => {
     if (!state.asesmenRubrik) return null;
     const a = state.asesmenRubrik;
+    const h = a.header || {} as any;
+    const diag = a.asesmenDiagnostik || {} as any;
+    const formatif = a.asesmenFormatif || {} as any;
+    const sumatif = a.asesmenSumatif || {} as any;
 
     const rawText = [
       `INSTRUMEN ASESMEN DAN RUBRIK PENILAIAN`,
-      `Madrasah: ${a.header.namaMadrasah}`,
-      `Mapel: ${a.header.mapel}`,
-      `Materi: ${a.header.materi}`,
-      `TP: ${a.header.tujuanPembelajaran}`,
+      `Madrasah: ${h.namaMadrasah || '-'}`,
+      `Mapel: ${h.mapel || '-'}`,
+      `Materi: ${h.materi || '-'}`,
+      `TP: ${h.tujuanPembelajaran || '-'}`,
     ].join('\n');
 
     return (
@@ -31,11 +35,11 @@ export default function StepAssessmentRubrik() {
             <h3 className="text-base font-bold text-slate-800 text-center mb-3">PAKET INSTRUMEN ASESMEN & RUBRIK PENILAIAN</h3>
             <table className="w-full text-xs">
               <tbody>
-                <tr><td className="font-semibold text-slate-600 p-1 w-40">Madrasah</td><td>: {a.header.namaMadrasah}</td></tr>
-                <tr><td className="font-semibold text-slate-600 p-1">Guru</td><td>: {a.header.namaGuru}</td></tr>
-                <tr><td className="font-semibold text-slate-600 p-1">Mapel</td><td>: {a.header.mapel}</td></tr>
-                <tr><td className="font-semibold text-slate-600 p-1">Materi</td><td>: {a.header.materi}</td></tr>
-                <tr><td className="font-semibold text-slate-600 p-1">TP</td><td>: {a.header.tujuanPembelajaran}</td></tr>
+                <tr><td className="font-semibold text-slate-600 p-1 w-40">Madrasah</td><td>: {h.namaMadrasah || '-'}</td></tr>
+                <tr><td className="font-semibold text-slate-600 p-1">Guru</td><td>: {h.namaGuru || '-'}</td></tr>
+                <tr><td className="font-semibold text-slate-600 p-1">Mapel</td><td>: {h.mapel || '-'}</td></tr>
+                <tr><td className="font-semibold text-slate-600 p-1">Materi</td><td>: {h.materi || '-'}</td></tr>
+                <tr><td className="font-semibold text-slate-600 p-1">TP</td><td>: {h.tujuanPembelajaran || '-'}</td></tr>
               </tbody>
             </table>
           </div>
@@ -44,23 +48,23 @@ export default function StepAssessmentRubrik() {
           <div>
             <h4 className="font-bold text-emerald-700 mb-2">A. Asesmen Diagnostik</h4>
             <div className="mb-3">
-              <p className="text-xs font-semibold text-slate-700 mb-1">Kognitif — {a.asesmenDiagnostik.kognitif.tujuan}</p>
+              <p className="text-xs font-semibold text-slate-700 mb-1">Kognitif — {((diag.kognitif||{}).tujuan) || '-'}</p>
               <div className="space-y-2">
-                {a.asesmenDiagnostik.kognitif.pertanyaan.map((q, i) => (
+                {((diag.kognitif||{}).pertanyaan||[]).map((q, i) => (
                   <div key={i} className="border border-slate-200 rounded p-2">
-                    <p className="text-xs text-slate-700"><span className="font-semibold">Q{q.no}:</span> {q.soal}</p>
-                    <p className="text-[10px] text-slate-400 italic mt-0.5">Tindak Lanjut: {q.tindakLanjut}</p>
+                    <p className="text-xs text-slate-700"><span className="font-semibold">Q{q.no}:</span> {q.soal || '-'}</p>
+                    <p className="text-[10px] text-slate-400 italic mt-0.5">Tindak Lanjut: {q.tindakLanjut || '-'}</p>
                   </div>
                 ))}
               </div>
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-700 mb-1">Non-Kognitif — {a.asesmenDiagnostik.nonKognitif.tujuan}</p>
+              <p className="text-xs font-semibold text-slate-700 mb-1">Non-Kognitif — {((diag.nonKognitif||{}).tujuan) || '-'}</p>
               <div className="space-y-2">
-                {a.asesmenDiagnostik.nonKognitif.aspek.map((q, i) => (
+                {((diag.nonKognitif||{}).aspek||[]).map((q, i) => (
                   <div key={i} className="border border-slate-200 rounded p-2">
-                    <p className="text-xs text-slate-700">{q.pertanyaan}</p>
-                    <p className="text-[10px] text-slate-400 italic">Indikator: {q.indikator}</p>
+                    <p className="text-xs text-slate-700">{q.pertanyaan || '-'}</p>
+                    <p className="text-[10px] text-slate-400 italic">Indikator: {q.indikator || '-'}</p>
                   </div>
                 ))}
               </div>
@@ -72,16 +76,16 @@ export default function StepAssessmentRubrik() {
             <h4 className="font-bold text-emerald-700 mb-2">B. Asesmen Formatif</h4>
             <div className="mb-3">
               <p className="text-xs font-semibold text-slate-700 mb-1">Observasi Sikap</p>
-              <p className="text-xs text-slate-600 mb-2">{a.asesmenFormatif.observasiSikap.instruksi}</p>
+              <p className="text-xs text-slate-600 mb-2">{((formatif.observasiSikap||{}).instruksi) || '-'}</p>
               <ul className="list-disc list-inside text-xs text-slate-600 space-y-0.5 mb-2">
-                {a.asesmenFormatif.observasiSikap.kriteria.map((k, i) => <li key={i}>{k}</li>)}
+                {((formatif.observasiSikap||{}).kriteria||[]).map((k, i) => <li key={i}>{k}</li>)}
               </ul>
             </div>
             <div>
               <p className="text-xs font-semibold text-slate-700 mb-1">Penilaian Diri</p>
-              <p className="text-xs text-slate-600 mb-2">{a.asesmenFormatif.penilaianDiri.instruksi}</p>
+              <p className="text-xs text-slate-600 mb-2">{((formatif.penilaianDiri||{}).instruksi) || '-'}</p>
               <ul className="list-disc list-inside text-xs text-slate-600 space-y-0.5">
-                {a.asesmenFormatif.penilaianDiri.pernyataan.map((p, i) => <li key={i}>{p}</li>)}
+                {((formatif.penilaianDiri||{}).pernyataan||[]).map((p, i) => <li key={i}>{p}</li>)}
               </ul>
             </div>
           </div>
@@ -89,15 +93,15 @@ export default function StepAssessmentRubrik() {
           {/* Sumatif */}
           <div>
             <h4 className="font-bold text-emerald-700 mb-2">C. Asesmen Sumatif</h4>
-            <p className="text-xs text-slate-600 mb-3">{a.asesmenSumatif.kisiKisi}</p>
+            <p className="text-xs text-slate-600 mb-3">{sumatif.kisiKisi || '-'}</p>
             <div className="space-y-3">
-              {a.asesmenSumatif.soalPgDanEsai.map((q, i) => (
+              {(sumatif.soalPgDanEsai||[]).map((q, i) => (
                 <div key={i} className="border border-slate-200 rounded-lg p-3">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="px-2 py-0.5 bg-sky-100 text-sky-700 text-[10px] font-bold rounded">{q.tipe}</span>
-                    <span className="text-[10px] text-slate-400">{q.tingkatKognitif}</span>
+                    <span className="px-2 py-0.5 bg-sky-100 text-sky-700 text-[10px] font-bold rounded">{q.tipe || '-'}</span>
+                    <span className="text-[10px] text-slate-400">{q.tingkatKognitif || '-'}</span>
                   </div>
-                  <p className="text-xs text-slate-700 mb-1">{q.no}. {q.pertanyaan}</p>
+                  <p className="text-xs text-slate-700 mb-1">{q.no}. {q.pertanyaan || '-'}</p>
                   {q.opsi && (
                     <div className="grid grid-cols-2 gap-1 mb-1">
                       {q.opsi.map((o, j) => (
@@ -105,26 +109,26 @@ export default function StepAssessmentRubrik() {
                       ))}
                     </div>
                   )}
-                  <p className="text-[10px] text-emerald-600 font-semibold">Kunci: {q.kunciJawaban}</p>
-                  <p className="text-[10px] text-slate-400 italic">{q.penjelasan}</p>
+                  <p className="text-[10px] text-emerald-600 font-semibold">Kunci: {q.kunciJawaban || '-'}</p>
+                  <p className="text-[10px] text-slate-400 italic">{q.penjelasan || '-'}</p>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Rubrik */}
-          {a.rubrikPenilaian && a.rubrikPenilaian.length > 0 && (
+          {(a.rubrikPenilaian||[]).length > 0 && (
             <div>
               <h4 className="font-bold text-emerald-700 mb-2">D. Rubrik Penilaian</h4>
               <div className="space-y-3">
-                {a.rubrikPenilaian.map((r, i) => (
+                {(a.rubrikPenilaian||[]).map((r, i) => (
                   <div key={i} className="border border-slate-200 rounded-lg p-3">
-                    <p className="text-xs font-bold text-slate-700 mb-1">{r.aspek}</p>
-                    <p className="text-[10px] text-slate-500 mb-1">Skor Maks: {r.skorMaks}</p>
+                    <p className="text-xs font-bold text-slate-700 mb-1">{r.aspek || '-'}</p>
+                    <p className="text-[10px] text-slate-500 mb-1">Skor Maks: {r.skorMaks || '-'}</p>
                     <ul className="list-disc list-inside text-[10px] text-slate-600 space-y-0.5">
-                      {r.kriteria.map((k, j) => <li key={j}>{k}</li>)}
+                      {(r.kriteria||[]).map((k, j) => <li key={j}>{k}</li>)}
                     </ul>
-                    <p className="text-[10px] text-slate-400 italic mt-1">{r.deskriptor}</p>
+                    <p className="text-[10px] text-slate-400 italic mt-1">{r.deskriptor || '-'}</p>
                   </div>
                 ))}
               </div>
