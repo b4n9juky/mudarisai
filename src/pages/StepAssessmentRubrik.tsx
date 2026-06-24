@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { usePipeline } from '../stores/pipelineStore';
-import { ClipboardList, Sparkles, RotateCw } from 'lucide-react';
+import { motion } from 'motion/react';
+import { ClipboardList, Sparkles, ChevronRight, ChevronDown, RotateCw } from 'lucide-react';
 import LoadingProgress from '../components/LoadingProgress';
 import DocumentViewer from '../components/DocumentViewer';
 
@@ -10,130 +12,87 @@ const FOKUS_OPTIONS = [
 ];
 
 export default function StepAssessmentRubrik() {
-  const { state, generateAssessmentRubrik, setFokusPenilaian, resetPipeline } = usePipeline();
+  const { state, generateModules, setFokusPenilaian, resetPipeline } = usePipeline();
+  const [openPertemuan, setOpenPertemuan] = useState<number | null>(null);
 
   const renderAssessment = () => {
-    if (!state.asesmenRubrik) return null;
-    const a = state.asesmenRubrik;
-    const h = a.header || {} as any;
-    const diag = a.asesmenDiagnostik || {} as any;
-    const formatif = a.asesmenFormatif || {} as any;
-    const sumatif = a.asesmenSumatif || {} as any;
+    const assessments = state.lessonAssessments;
+    if (!assessments || assessments.length === 0) return null;
 
-    const rawText = [
-      `INSTRUMEN ASESMEN DAN RUBRIK PENILAIAN`,
-      `Madrasah: ${h.namaMadrasah || '-'}`,
-      `Mapel: ${h.mapel || '-'}`,
-      `Materi: ${h.materi || '-'}`,
-      `TP: ${h.tujuanPembelajaran || '-'}`,
-    ].join('\n');
+    const rawText = assessments.map(a => [
+      `ASESMEN — Pertemuan ${a.pertemuanKe}: ${a.topik}`,
+      `Fokus Penilaian: ${a.fokusPenilaian}`,
+      ...(a.rubrik || []).map(r => `  ${r.aspek}: 4="${r.skor4}" | 3="${r.skor3}" | 2="${r.skor2}" | 1="${r.skor1}"`),
+      '',
+    ].join('\n')).join('\n');
 
     return (
-      <DocumentViewer title="Instrumen Asesmen & Rubrik Penilaian" icon={<ClipboardList className="w-4 h-4 text-emerald-600" />} rawText={rawText}>
-        <div className="space-y-6 text-sm">
-          <div className="border-b border-slate-200 pb-4">
-            <h3 className="text-base font-bold text-slate-800 text-center mb-3">PAKET INSTRUMEN ASESMEN & RUBRIK PENILAIAN</h3>
-            <table className="w-full text-xs">
-              <tbody>
-                <tr><td className="font-semibold text-slate-600 p-1 w-40">Madrasah</td><td>: {h.namaMadrasah || '-'}</td></tr>
-                <tr><td className="font-semibold text-slate-600 p-1">Guru</td><td>: {h.namaGuru || '-'}</td></tr>
-                <tr><td className="font-semibold text-slate-600 p-1">Mapel</td><td>: {h.mapel || '-'}</td></tr>
-                <tr><td className="font-semibold text-slate-600 p-1">Materi</td><td>: {h.materi || '-'}</td></tr>
-                <tr><td className="font-semibold text-slate-600 p-1">TP</td><td>: {h.tujuanPembelajaran || '-'}</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          {/* Diagnostik */}
-          <div>
-            <h4 className="font-bold text-emerald-700 mb-2">A. Asesmen Diagnostik</h4>
-            <div className="mb-3">
-              <p className="text-xs font-semibold text-slate-700 mb-1">Kognitif — {((diag.kognitif||{}).tujuan) || '-'}</p>
-              <div className="space-y-2">
-                {((diag.kognitif||{}).pertanyaan||[]).map((q, i) => (
-                  <div key={i} className="border border-slate-200 rounded p-2">
-                    <p className="text-xs text-slate-700"><span className="font-semibold">Q{q.no}:</span> {q.soal || '-'}</p>
-                    <p className="text-[10px] text-slate-400 italic mt-0.5">Tindak Lanjut: {q.tindakLanjut || '-'}</p>
+      <DocumentViewer title="Rubrik Asesmen Per Pertemuan" icon={<ClipboardList className="w-4 h-4 text-emerald-600" />} rawText={rawText}>
+        <div className="space-y-4">
+          <h3 className="text-base font-bold text-slate-800 text-center mb-4">RUBRIK ASESMEN PER PERTEMUAN (SKALA 1-4)</h3>
+          {assessments.map((a) => (
+            <motion.div
+              key={a.pertemuanKe}
+              className="border border-slate-200 rounded-lg overflow-hidden"
+            >
+              <button
+                onClick={() => setOpenPertemuan(openPertemuan === a.pertemuanKe ? null : a.pertemuanKe)}
+                className="w-full flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 transition-colors text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 bg-emerald-100 rounded-full flex items-center justify-center text-xs font-bold text-emerald-700">
+                    {a.pertemuanKe}
                   </div>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-700 mb-1">Non-Kognitif — {((diag.nonKognitif||{}).tujuan) || '-'}</p>
-              <div className="space-y-2">
-                {((diag.nonKognitif||{}).aspek||[]).map((q, i) => (
-                  <div key={i} className="border border-slate-200 rounded p-2">
-                    <p className="text-xs text-slate-700">{q.pertanyaan || '-'}</p>
-                    <p className="text-[10px] text-slate-400 italic">Indikator: {q.indikator || '-'}</p>
+                  <div>
+                    <p className="text-xs font-bold text-slate-700">Pertemuan {a.pertemuanKe}: {a.topik}</p>
+                    <p className="text-[10px] text-slate-400">Fokus: {a.fokusPenilaian}</p>
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Formatif */}
-          <div>
-            <h4 className="font-bold text-emerald-700 mb-2">B. Asesmen Formatif</h4>
-            <div className="mb-3">
-              <p className="text-xs font-semibold text-slate-700 mb-1">Observasi Sikap</p>
-              <p className="text-xs text-slate-600 mb-2">{((formatif.observasiSikap||{}).instruksi) || '-'}</p>
-              <ul className="list-disc list-inside text-xs text-slate-600 space-y-0.5 mb-2">
-                {((formatif.observasiSikap||{}).kriteria||[]).map((k, i) => <li key={i}>{k}</li>)}
-              </ul>
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-700 mb-1">Penilaian Diri</p>
-              <p className="text-xs text-slate-600 mb-2">{((formatif.penilaianDiri||{}).instruksi) || '-'}</p>
-              <ul className="list-disc list-inside text-xs text-slate-600 space-y-0.5">
-                {((formatif.penilaianDiri||{}).pernyataan||[]).map((p, i) => <li key={i}>{p}</li>)}
-              </ul>
-            </div>
-          </div>
-
-          {/* Sumatif */}
-          <div>
-            <h4 className="font-bold text-emerald-700 mb-2">C. Asesmen Sumatif</h4>
-            <p className="text-xs text-slate-600 mb-3">{sumatif.kisiKisi || '-'}</p>
-            <div className="space-y-3">
-              {(sumatif.soalPgDanEsai||[]).map((q, i) => (
-                <div key={i} className="border border-slate-200 rounded-lg p-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="px-2 py-0.5 bg-sky-100 text-sky-700 text-[10px] font-bold rounded">{q.tipe || '-'}</span>
-                    <span className="text-[10px] text-slate-400">{q.tingkatKognitif || '-'}</span>
-                  </div>
-                  <p className="text-xs text-slate-700 mb-1">{q.no}. {q.pertanyaan || '-'}</p>
-                  {q.opsi && (
-                    <div className="grid grid-cols-2 gap-1 mb-1">
-                      {q.opsi.map((o, j) => (
-                        <p key={j} className="text-[10px] text-slate-500">{o}</p>
-                      ))}
-                    </div>
-                  )}
-                  <p className="text-[10px] text-emerald-600 font-semibold">Kunci: {q.kunciJawaban || '-'}</p>
-                  <p className="text-[10px] text-slate-400 italic">{q.penjelasan || '-'}</p>
                 </div>
-              ))}
-            </div>
-          </div>
+                {openPertemuan === a.pertemuanKe ? (
+                  <ChevronDown className="w-4 h-4 text-slate-400" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                )}
+              </button>
 
-          {/* Rubrik */}
-          {(a.rubrikPenilaian||[]).length > 0 && (
-            <div>
-              <h4 className="font-bold text-emerald-700 mb-2">D. Rubrik Penilaian</h4>
-              <div className="space-y-3">
-                {(a.rubrikPenilaian||[]).map((r, i) => (
-                  <div key={i} className="border border-slate-200 rounded-lg p-3">
-                    <p className="text-xs font-bold text-slate-700 mb-1">{r.aspek || '-'}</p>
-                    <p className="text-[10px] text-slate-500 mb-1">Skor Maks: {r.skorMaks || '-'}</p>
-                    <ul className="list-disc list-inside text-[10px] text-slate-600 space-y-0.5">
-                      {(r.kriteria||[]).map((k, j) => <li key={j}>{k}</li>)}
-                    </ul>
-                    <p className="text-[10px] text-slate-400 italic mt-1">{r.deskriptor || '-'}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+              {openPertemuan === a.pertemuanKe && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  className="p-4 border-t border-slate-200"
+                >
+                  {(a.rubrik || []).length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-[11px] border-collapse">
+                        <thead>
+                          <tr className="bg-slate-100">
+                            <th className="border border-slate-200 p-2 text-left w-1/5">Aspek Penilaian</th>
+                            <th className="border border-slate-200 p-2 w-1/5">4 — Sangat Baik</th>
+                            <th className="border border-slate-200 p-2 w-1/5">3 — Baik</th>
+                            <th className="border border-slate-200 p-2 w-1/5">2 — Cukup</th>
+                            <th className="border border-slate-200 p-2 w-1/5">1 — Perlu Bimbingan</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(a.rubrik || []).map((r, i) => (
+                            <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
+                              <td className="border border-slate-200 p-2 font-semibold text-slate-700">{r.aspek}</td>
+                              <td className="border border-slate-200 p-2 text-slate-600">{r.skor4}</td>
+                              <td className="border border-slate-200 p-2 text-slate-600">{r.skor3}</td>
+                              <td className="border border-slate-200 p-2 text-slate-600">{r.skor2}</td>
+                              <td className="border border-slate-200 p-2 text-slate-600">{r.skor1}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400 text-center py-4">Belum ada rubrik untuk pertemuan ini.</p>
+                  )}
+                </motion.div>
+              )}
+            </motion.div>
+          ))}
         </div>
       </DocumentViewer>
     );
@@ -144,9 +103,15 @@ export default function StepAssessmentRubrik() {
       {state.loading && <LoadingProgress currentStep={7} loadingStep={state.loadingStep} />}
       {state.error && <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{state.error}</div>}
 
-      {state.asesmenRubrik ? (
+      {(state.lessonAssessments.length > 0 || state.asesmenRubrik) ? (
         <>
-          {renderAssessment()}
+          {state.lessonAssessments.length > 0 ? (
+            renderAssessment()
+          ) : (
+            <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm text-center">
+              <p className="text-sm text-slate-500">Data asesmen per pertemuan tidak tersedia. Generate ulang dari halaman LKPD.</p>
+            </div>
+          )}
           <div className="flex items-center gap-3 no-print">
             <button
               onClick={() => {
@@ -157,14 +122,13 @@ export default function StepAssessmentRubrik() {
               <RotateCw className="w-4 h-4" />
               Buat Baru
             </button>
-            <p className="text-xs text-emerald-600 font-semibold">✓ Pipeline selesai! Semua dokumen telah di-generate.</p>
+            <p className="text-xs text-emerald-600 font-semibold">✓ Pipeline selesai! Semua dokumen telah di-generate per pertemuan.</p>
           </div>
         </>
       ) : (
         <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm text-center no-print">
-          <p className="text-sm text-slate-500 mb-4">Instrumen Asesmen & Rubrik belum di-generate</p>
+          <p className="text-sm text-slate-500 mb-4">Rubrik Asesmen per pertemuan belum di-generate</p>
 
-          {/* Fokus Penilaian Selector */}
           <div className="text-left mb-4 max-w-md mx-auto">
             <label className="block text-xs font-semibold text-slate-600 mb-2">Fokus Penilaian (Rubrik Analitik Skala 1-4):</label>
             <select
@@ -176,16 +140,16 @@ export default function StepAssessmentRubrik() {
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
-            <p className="text-[10px] text-slate-400 mt-1 italic">Bobot penilaian akan disesuaikan dengan fokus yang dipilih</p>
+            <p className="text-[10px] text-slate-400 mt-1 italic">Rubrik akan disesuaikan per pertemuan berdasarkan fokus ini</p>
           </div>
 
           <button
-            onClick={generateAssessmentRubrik}
+            onClick={generateModules}
             disabled={state.loading}
             className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2 mx-auto"
           >
             <Sparkles className="w-4 h-4" />
-            Generate Asesmen + Rubrik
+            Generate Rubrik Asesmen Per Pertemuan
           </button>
         </div>
       )}

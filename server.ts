@@ -487,7 +487,7 @@ async function startServer() {
       }
 
       // Fetch all related data
-      const [analisisCP, tp, atp, protaProsem, modulAjar, lkpd, asesmenRubrik, lessons] = await Promise.all([
+      const [analisisCP, tp, atp, protaProsem, modulAjar, lkpd, asesmenRubrik, lessons, lessonLkpds, lessonAssessments] = await Promise.all([
         dbQuery("SELECT * FROM tbl_analisis_cp WHERE pipeline_id = $1", [id]),
         dbQuery("SELECT * FROM tbl_tp WHERE pipeline_id = $1", [id]),
         dbQuery("SELECT * FROM tbl_atp WHERE pipeline_id = $1", [id]),
@@ -496,6 +496,8 @@ async function startServer() {
         dbQuery("SELECT * FROM tbl_lkpd WHERE pipeline_id = $1", [id]),
         dbQuery("SELECT * FROM tbl_asesmen_rubrik WHERE pipeline_id = $1", [id]),
         dbQuery("SELECT * FROM tbl_lessons WHERE pipeline_id = $1 ORDER BY pertemuan_ke", [id]),
+        dbQuery("SELECT ll.*, l.pertemuan_ke, l.topik FROM tbl_lkpds ll JOIN tbl_lessons l ON ll.lesson_id = l.id WHERE l.pipeline_id = $1 ORDER BY l.pertemuan_ke", [id]).catch(() => ({ rows: [] })),
+        dbQuery("SELECT a.*, l.pertemuan_ke, l.topik FROM tbl_assessments a JOIN tbl_lessons l ON a.lesson_id = l.id WHERE l.pipeline_id = $1 ORDER BY l.pertemuan_ke", [id]).catch(() => ({ rows: [] })),
       ]);
 
       const mapAnalisisCP = (r: any) => r ? {
@@ -560,6 +562,23 @@ async function startServer() {
         rubrikPenilaian: r.rubrik || [],
       } : null;
 
+      const mapLessonLKPDPipe = (rows: any[]) => rows.map((r: any) => ({
+        lessonId: r.lesson_id,
+        pertemuanKe: r.pertemuan_ke,
+        topik: r.topik,
+        instruksiMisi: r.instruksi_misi || '',
+        kalimatRumpang: r.kalimat_rumpang || [],
+        tipeInput: r.tipe_input || { sketsaGrid: false, fotoCetak: false, tautanDigital: '' },
+      }));
+
+      const mapLessonAssessmentPipe = (rows: any[]) => rows.map((r: any) => ({
+        lessonId: r.lesson_id,
+        pertemuanKe: r.pertemuan_ke,
+        topik: r.topik,
+        fokusPenilaian: r.fokus_penilaian || '',
+        rubrik: r.rubrik_json || [],
+      }));
+
       const mapAsesmenRubrik = (r: any) => r ? {
         header: r.header || {},
         asesmenDiagnostik: r.asesmen_diagnostik || {},
@@ -586,6 +605,8 @@ async function startServer() {
         modulAjar: mapModulAjar(modulAjar.rows[0], lessons.rows),
         lkpd: mapLKPD(lkpd.rows[0]),
         asesmenRubrik: mapAsesmenRubrik(asesmenRubrik.rows[0]),
+        lessonLkpds: mapLessonLKPDPipe(lessonLkpds.rows),
+        lessonAssessments: mapLessonAssessmentPipe(lessonAssessments.rows),
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -1094,6 +1115,139 @@ WAJIB keluarkan JSON dengan struktur:
       res.json({ asesmenRubrik: ar });
     } catch (err: any) {
       console.error("[ASSESSMENT]", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ============================================================
+  // PER-MEETING MODULES (LKPD + Assessment) — Point 6
+  // ============================================================
+  app.post("/api/pipeline/generate-modules", authenticate, async (req, res) => {
+    try {
+      const { pipelineId, fokusPenilaian } = req.body;
+      if (!apiKey) throw new Error("OPENROUTER_API_KEY belum dikonfigurasi.");
+
+      // Get all lessons for this pipeline
+      const lessonsResult = await dbQuery(
+        "SELECT id, pertemuan_ke, topik FROM tbl_lessons WHERE pipeline_id = $1 ORDER BY pertemuan_ke",
+        [pipelineId]
+      );
+      const lessons = lessonsResult.rows;
+      if (lessons.length === 0) {
+        return res.status(400).json({ error: "Tidak ada pertemuan. Generate Modul Ajar terlebih dahulu." });
+      }
+
+      const fokus = fokusPenilaian || 'Proses & Eksplorasi';
+
+      // Delete old per-meeting data for this pipeline
+      await dbQuery(
+        "DELETE FROM tbl_lkpds WHERE lesson_id IN (SELECT id FROM tbl_lessons WHERE pipeline_id = $1)",
+        [pipelineId]
+      );
+      await dbQuery(
+        "DELETE FROM tbl_assessments WHERE lesson_id IN (SELECT id FROM tbl_lessons WHERE pipeline_id = $1)",
+        [pipelineId]
+      );
+
+      const lessonLkpds = [];
+      const lessonAssessments = [];
+
+      for (const lesson of lessons) {
+        // --- LKPD per pertemuan ---
+        const lkpdPrompt = `Rancang LKPD untuk pertemuan dengan topik "${lesson.topik}".
+
+Buat 3 bagian utama:
+1) Instruksi Misi: Tugas eksplorasi spesifik 15 menit untuk pertemuan ini (dengan rincian waktu menit-demi-menit).
+2) Kalimat Rumpang: 2-3 kalimat tidak lengkap untuk membantu siswa menulis Artist Statement / refleksi diri tentang proses eksplorasi mereka.
+3) Tipe Input: Tentukan input yang relevan untuk pertemuan ini — sketsaGrid (bool, untuk gambar manual), fotoCetak (bool, untuk foto), tautanDigital (string: "Canva" / "YouTube" / "link" / "").
+
+WAJIB keluarkan JSON dengan struktur:
+{
+  "lkpd": {
+    "instruksiMisi": "...",
+    "kalimatRumpang": ["...", "..."],
+    "tipeInput": { "sketsaGrid": true, "fotoCetak": false, "tautanDigital": "Canva" }
+  }
+}`;
+
+        const lkpdResponse = await generateWithFallback({
+          messages: [{ role: "user", content: lkpdPrompt }],
+        });
+
+        const lkpdText = lkpdResponse.choices?.[0]?.message?.content;
+        if (!lkpdText) throw new Error("AI mengembalikan teks kosong untuk LKPD.");
+
+        const lkpdData = JSON.parse(extractJson(lkpdText));
+        const lkpd = lkpdData.lkpd || lkpdData;
+
+        await dbQuery(
+          `INSERT INTO tbl_lkpds (lesson_id, instruksi_misi, kalimat_rumpang, tipe_input)
+           VALUES ($1, $2, $3, $4)
+           ON CONFLICT (lesson_id) DO UPDATE SET instruksi_misi=$2, kalimat_rumpang=$3, tipe_input=$4, updated_at=NOW()`,
+          [lesson.id, lkpd.instruksiMisi || '', JSON.stringify(lkpd.kalimatRumpang || []), JSON.stringify(lkpd.tipeInput || {})]
+        );
+
+        lessonLkpds.push({
+          lessonId: lesson.id,
+          pertemuanKe: lesson.pertemuan_ke,
+          topik: lesson.topik,
+          instruksiMisi: lkpd.instruksiMisi || '',
+          kalimatRumpang: lkpd.kalimatRumpang || [],
+          tipeInput: lkpd.tipeInput || { sketsaGrid: false, fotoCetak: false, tautanDigital: '' },
+        });
+
+        // --- Assessment per pertemuan ---
+        const fokusPrompt = fokus === 'Proses & Eksplorasi'
+          ? `Titik beratkan penilaian (60%) pada keberanian mencoba, kelengkapan catatan/langkah kerja, proses penyelidikan, dan variasi ide/hipotesis. Sisanya (40%) pada hasil akhir.`
+          : fokus === 'Kedalaman Pemahaman & Analisis'
+          ? `Titik beratkan penilaian (60%) pada kedalaman argumen, kemampuan refleksi, pemahaman konsep teoritis, dan kemampuan mengaitkan materi dengan kehidupan nyata. Sisanya (40%) pada ketepatan penyajian.`
+          : `Titik beratkan penilaian (60%) pada akurasi data/perhitungan, ketepatan tata bahasa, penguasaan rumus/teknik, atau kerapian penyajian sesuai karakteristik mata pelajaran ini. Sisanya (40%) pada ide dasar.`;
+
+        const assessmentPrompt = `Kamu adalah ahli evaluasi pendidikan. Susunlah rubrik penilaian analitik dengan skala 1-4 untuk pertemuan dengan topik "${lesson.topik}".
+
+FOKUS PENILAIAN: ${fokus}
+${fokusPrompt}
+
+Buat 3-4 aspek penilaian yang relevan dengan topik pertemuan ini. Setiap aspek memiliki deskriptor untuk skor 4 (Sangat Baik), 3 (Baik), 2 (Cukup), 1 (Perlu Bimbingan).
+
+WAJIB keluarkan JSON dengan struktur:
+{
+  "assessment": {
+    "rubrik": [
+      { "aspek": "Nama Aspek", "skor4": "Deskripsi skor 4", "skor3": "Deskripsi skor 3", "skor2": "Deskripsi skor 2", "skor1": "Deskripsi skor 1" }
+    ]
+  }
+}`;
+
+        const assessmentResponse = await generateWithFallback({
+          messages: [{ role: "user", content: assessmentPrompt }],
+        });
+
+        const assessmentText = assessmentResponse.choices?.[0]?.message?.content;
+        if (!assessmentText) throw new Error("AI mengembalikan teks kosong untuk Assessment.");
+
+        const assessmentData = JSON.parse(extractJson(assessmentText));
+        const assessment = assessmentData.assessment || assessmentData;
+
+        await dbQuery(
+          `INSERT INTO tbl_assessments (lesson_id, fokus_penilaian, rubrik_json)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (lesson_id) DO UPDATE SET fokus_penilaian=$2, rubrik_json=$3, updated_at=NOW()`,
+          [lesson.id, fokus, JSON.stringify(assessment.rubrik || [])]
+        );
+
+        lessonAssessments.push({
+          lessonId: lesson.id,
+          pertemuanKe: lesson.pertemuan_ke,
+          topik: lesson.topik,
+          fokusPenilaian: fokus,
+          rubrik: assessment.rubrik || [],
+        });
+      }
+
+      res.json({ lessonLkpds, lessonAssessments });
+    } catch (err: any) {
+      console.error("[GENERATE MODULES]", err);
       res.status(500).json({ error: err.message });
     }
   });

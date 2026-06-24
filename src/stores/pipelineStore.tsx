@@ -2,6 +2,7 @@ import React, { createContext, useContext, useReducer, useCallback, useRef } fro
 import type {
   PipelineState, PipelineInput, AnalisisCPData, TPData, ATPData,
   ProtaProsemData, ModulAjarData, LKPDData, AsesmenRubrikData,
+  LessonLKPD, LessonAssessment,
   PipelineStep, SubStep,
 } from '../types/pipeline';
 import { pipelineApi } from '../lib/api';
@@ -16,6 +17,8 @@ const initialState: PipelineState = {
   modulAjar: null,
   lkpd: null,
   asesmenRubrik: null,
+  lessonLkpds: [],
+  lessonAssessments: [],
   currentStep: 0,
   subStep: 0,
   loading: false,
@@ -43,6 +46,8 @@ type PipelineAction =
   | { type: 'SET_MODUL_AJAR'; payload: ModulAjarData }
   | { type: 'SET_LKPD'; payload: LKPDData }
   | { type: 'SET_ASESMEN_RUBRIK'; payload: AsesmenRubrikData }
+  | { type: 'SET_LESSON_LKPDS'; payload: LessonLKPD[] }
+  | { type: 'SET_LESSON_ASSESSMENTS'; payload: LessonAssessment[] }
   | { type: 'SET_KALENDER'; payload: { mingguEfektifGanjil: number; mingguEfektifGenap: number; catatanKalender: string } }
   | { type: 'SET_FOKUS_PENILAIAN'; payload: string }
   | { type: 'LOAD_PIPELINE'; payload: Partial<PipelineState> }
@@ -84,6 +89,10 @@ function pipelineReducer(state: PipelineState, action: PipelineAction): Pipeline
       return { ...state, ...action.payload };
     case 'SET_FOKUS_PENILAIAN':
       return { ...state, fokusPenilaian: action.payload };
+    case 'SET_LESSON_LKPDS':
+      return { ...state, lessonLkpds: action.payload, loading: false };
+    case 'SET_LESSON_ASSESSMENTS':
+      return { ...state, lessonAssessments: action.payload, loading: false };
     case 'LOAD_PIPELINE':
       return { ...state, ...action.payload, loading: false };
     case 'RESET':
@@ -104,6 +113,7 @@ interface PipelineContextType {
   generateModulAjar: () => Promise<void>;
   generateLKPD: () => Promise<void>;
   generateAssessmentRubrik: () => Promise<void>;
+  generateModules: () => Promise<void>;
   generateAll: (input: PipelineInput) => Promise<void>;
   setKalender: (data: { mingguEfektifGanjil: number; mingguEfektifGenap: number; catatanKalender: string }) => void;
   setFokusPenilaian: (fokus: string) => void;
@@ -120,6 +130,7 @@ const loadingStepTexts: Record<number, string[]> = {
   5: ['Merancang Modul Ajar...', 'Menyusun identifikasi dan desain...', 'Merancang pengalaman belajar...'],
   6: ['Menyusun LKPD...', 'Merancang stimulus kontekstual...', 'Menyusun pertanyaan C1-C6...'],
   7: ['Menyusun Asesmen...', 'Merancang diagnostik...', 'Merancang formatif...', 'Merancang sumatif...', 'Menyusun Rubrik...'],
+  8: ['Menyiapkan LKPD per pertemuan...', 'Menyusun misi eksplorasi...', 'Membuat panduan refleksi...', 'Menyusun rubrik asesmen per pertemuan...'],
 };
 
 export function PipelineProvider({ children }: { children: React.ReactNode }) {
@@ -240,6 +251,16 @@ export function PipelineProvider({ children }: { children: React.ReactNode }) {
     });
   }, [withLoading]);
 
+  const generateModules = useCallback(async () => {
+    const s = stateRef.current;
+    if (!s.id) return;
+    await withLoading(8, async () => {
+      const res = await pipelineApi.generateModules(s.id!, { fokusPenilaian: s.fokusPenilaian });
+      dispatch({ type: 'SET_LESSON_LKPDS', payload: res.lessonLkpds });
+      dispatch({ type: 'SET_LESSON_ASSESSMENTS', payload: res.lessonAssessments });
+    });
+  }, [withLoading]);
+
   const generateAll = useCallback(async (input: PipelineInput) => {
     // Step 1: create pipeline
     dispatch({ type: 'SET_INPUT', payload: input });
@@ -304,6 +325,13 @@ export function PipelineProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'SET_ASESMEN_RUBRIK', payload: ar.asesmenRubrik });
       stopLoading();
 
+      // Per-meeting Modules (LKPD + Assessment per pertemuan)
+      startLoading(8);
+      const modules = await pipelineApi.generateModules(pid, { fokusPenilaian: stateRef.current.fokusPenilaian });
+      dispatch({ type: 'SET_LESSON_LKPDS', payload: modules.lessonLkpds });
+      dispatch({ type: 'SET_LESSON_ASSESSMENTS', payload: modules.lessonAssessments });
+      stopLoading();
+
     } catch (err: any) {
       dispatch({ type: 'SET_ERROR', payload: err.message || 'Gagal generate seluruh pipeline' });
       stopLoading();
@@ -328,6 +356,7 @@ export function PipelineProvider({ children }: { children: React.ReactNode }) {
       createPipeline: createPipelineFn,
       generateAnalisisCP, generateTP, generateATP,
       generateProtaProsem, generateModulAjar, generateLKPD, generateAssessmentRubrik,
+      generateModules,
       generateAll, setKalender, setFokusPenilaian, resetPipeline,
     }}>
       {children}

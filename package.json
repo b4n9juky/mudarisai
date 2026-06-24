@@ -10,7 +10,7 @@
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
     "db:init": "psql -h localhost -U postgres -c \"CREATE DATABASE mudarisai;\" 2>nul || echo DB already exists",
-    "db:migrate": "psql -h localhost -U postgres -d mudarisai -f database/001_init.sql",
+    "db:migrate": "powershell -ExecutionPolicy Bypass -File database/migrate.ps1",
     "db:seed": "tsx database/seed.ts",
     "db:setup": "npm run db:init && npm run db:migrate && npm run db:seed"
   },

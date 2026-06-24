@@ -6,7 +6,7 @@ import LoadingProgress from '../components/LoadingProgress';
 import DocumentViewer from '../components/DocumentViewer';
 
 export default function StepModulAjar() {
-  const { state, generateModulAjar, dispatch } = usePipeline();
+  const { state, generateModulAjar, generateModules, dispatch } = usePipeline();
   const [openPertemuan, setOpenPertemuan] = useState<number | null>(null);
 
   const renderModulAjar = () => {
@@ -214,12 +214,22 @@ export default function StepModulAjar() {
       {state.modulAjar ? (
         <>
           {renderModulAjar()}
-          <button
-            onClick={() => dispatch({ type: 'SET_STEP', payload: 4 })}
-            className="self-start px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2 no-print"
-          >
-            Lanjut ke LKPD <ChevronRight className="w-4 h-4" />
-          </button>
+          <div className="flex flex-wrap items-center gap-3 no-print">
+            <button
+              onClick={() => dispatch({ type: 'SET_STEP', payload: 4 })}
+              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2"
+            >
+              Lanjut ke LKPD <ChevronRight className="w-4 h-4" />
+            </button>
+            <button
+              onClick={generateModules}
+              disabled={state.loading}
+              className="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 disabled:bg-sky-400 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              Generate LKPD & Asesmen Per Pertemuan
+            </button>
+          </div>
         </>
       ) : (
         <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm text-center no-print">

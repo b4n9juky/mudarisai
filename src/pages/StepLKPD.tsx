@@ -1,98 +1,143 @@
+import { useState } from 'react';
 import { usePipeline } from '../stores/pipelineStore';
-import { CheckSquare, Sparkles, ChevronRight } from 'lucide-react';
+import { motion } from 'motion/react';
+import { CheckSquare, Sparkles, ChevronRight, ChevronDown, Image, Link, Edit3, Grid3x3, Camera } from 'lucide-react';
 import LoadingProgress from '../components/LoadingProgress';
 import DocumentViewer from '../components/DocumentViewer';
 
 export default function StepLKPD() {
-  const { state, generateLKPD, dispatch } = usePipeline();
+  const { state, generateModules, dispatch } = usePipeline();
+  const [openPertemuan, setOpenPertemuan] = useState<number | null>(null);
 
   const renderLKPD = () => {
-    if (!state.lkpd) return null;
-    const l = state.lkpd;
-    const h = l.header || {} as any;
-    const stimulus = l.stimulusKontekstual || {} as any;
-    const aktivitas = l.aktivitas || {} as any;
+    const lkpds = state.lessonLkpds;
+    if (!lkpds || lkpds.length === 0) return null;
 
-    const rawText = [
-      `LEMBAR KERJA PESERTA DIDIK (LKPD)`,
-      `Madrasah: ${h.namaMadrasah || '-'}`,
-      `Mapel: ${h.mapel || '-'}`,
-      `Materi: ${h.materi || '-'}`,
-      `TP: ${h.tujuanPembelajaran || '-'}`,
-      ``,
-      `STIMULUS: ${stimulus.judul || '-'}`,
-      stimulus.narasi || '-',
-      ``,
-      ...(l.pertanyaanC1C6||[]).map(q => `${q.level || '-'}: ${q.pertanyaan || '-'}`),
-    ].join('\n');
+    const rawText = lkpds.map(l => [
+      `LKPD — Pertemuan ${l.pertemuanKe}: ${l.topik}`,
+      `Instruksi Misi: ${l.instruksiMisi}`,
+      `Kalimat Rumpang: ${(l.kalimatRumpang || []).join('; ')}`,
+      `Input: ${l.tipeInput.sketsaGrid ? 'Sketsa Grid, ' : ''}${l.tipeInput.fotoCetak ? 'Foto Cetak, ' : ''}${l.tipeInput.tautanDigital || ''}`,
+      '',
+    ].join('\n')).join('\n');
 
     return (
-      <DocumentViewer title="Lembar Kerja Peserta Didik (LKPD)" icon={<CheckSquare className="w-4 h-4 text-emerald-600" />} rawText={rawText}>
-        <div className="space-y-6 text-sm">
-          <div className="border-b border-slate-200 pb-4">
-            <h3 className="text-base font-bold text-slate-800 text-center mb-3">LEMBAR KERJA PESERTA DIDIK (LKPD)</h3>
-            <table className="w-full text-xs">
-              <tbody>
-                <tr><td className="font-semibold text-slate-600 p-1 w-40">Madrasah</td><td>: {h.namaMadrasah || '-'}</td></tr>
-                <tr><td className="font-semibold text-slate-600 p-1">Mapel</td><td>: {h.mapel || '-'}</td></tr>
-                <tr><td className="font-semibold text-slate-600 p-1">Materi</td><td>: {h.materi || '-'}</td></tr>
-                <tr><td className="font-semibold text-slate-600 p-1">Alokasi Waktu</td><td>: {h.alokasiWaktu || '-'}</td></tr>
-                <tr><td className="font-semibold text-slate-600 p-1">TP</td><td>: {h.tujuanPembelajaran || '-'}</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div>
-            <h4 className="font-bold text-emerald-700 mb-2">Petunjuk Kerja</h4>
-            <ol className="list-decimal list-inside text-xs text-slate-600 space-y-1">
-              {(l.petunjukKerja||[]).map((p, i) => <li key={i}>{p}</li>)}
-            </ol>
-          </div>
-
-          <div className="bg-slate-50 rounded-lg p-4">
-            <h4 className="font-bold text-emerald-700 mb-2">Stimulus Kontekstual</h4>
-            <p className="text-xs font-semibold text-slate-700 mb-1">{stimulus.judul || '-'}</p>
-            <p className="text-xs text-slate-600 leading-relaxed">{stimulus.narasi || '-'}</p>
-          </div>
-
-          <div>
-            <h4 className="font-bold text-emerald-700 mb-2">Aktivitas</h4>
-            <p className="text-xs text-slate-600 mb-1"><span className="font-semibold">Jenis:</span> {aktivitas.jenis || '-'}</p>
-            <p className="text-xs text-slate-600 mb-1"><span className="font-semibold">Aktivitas:</span> {aktivitas.namaAktivitas || '-'}</p>
-            <ol className="list-decimal list-inside text-xs text-slate-600 space-y-0.5">
-              {(aktivitas.panduanLangkah||[]).map((step, i) => <li key={i}>{step}</li>)}
-            </ol>
-          </div>
-
-          <div>
-            <h4 className="font-bold text-emerald-700 mb-2">Pertanyaan Berjenjang C1-C6</h4>
-            <div className="space-y-3">
-              {(l.pertanyaanC1C6||[]).map((q, i) => (
-                <div key={i} className="border border-slate-200 rounded-lg p-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded">{q.level || '-'}</span>
+      <DocumentViewer title="LKPD Per Pertemuan" icon={<CheckSquare className="w-4 h-4 text-emerald-600" />} rawText={rawText}>
+        <div className="space-y-4">
+          <h3 className="text-base font-bold text-slate-800 text-center mb-4">LEMBAR KERJA PESERTA DIDIK (LKPD) PER PERTEMUAN</h3>
+          {lkpds.map((l) => (
+            <motion.div
+              key={l.pertemuanKe}
+              className="border border-slate-200 rounded-lg overflow-hidden"
+            >
+              <button
+                onClick={() => setOpenPertemuan(openPertemuan === l.pertemuanKe ? null : l.pertemuanKe)}
+                className="w-full flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 transition-colors text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 bg-emerald-100 rounded-full flex items-center justify-center text-xs font-bold text-emerald-700">
+                    {l.pertemuanKe}
                   </div>
-                  <p className="text-xs text-slate-700 mb-1">{q.pertanyaan || '-'}</p>
-                  <p className="text-[10px] text-slate-400 italic">Petunjuk: {q.petunjukJawaban || '-'}</p>
+                  <div>
+                    <p className="text-xs font-bold text-slate-700">Pertemuan {l.pertemuanKe}: {l.topik}</p>
+                    <p className="text-[10px] text-slate-400">LKPD Spesifik untuk pertemuan ini</p>
+                  </div>
                 </div>
-              ))}
-            </div>
-          </div>
+                {openPertemuan === l.pertemuanKe ? (
+                  <ChevronDown className="w-4 h-4 text-slate-400" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                )}
+              </button>
 
-          <div>
-            <h4 className="font-bold text-emerald-700 mb-2">Kesimpulan</h4>
-            <p className="text-xs text-slate-600">{l.kesimpulan || '-'}</p>
-          </div>
+              {openPertemuan === l.pertemuanKe && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  className="p-4 space-y-4 border-t border-slate-200"
+                >
+                  {/* Instruksi Misi */}
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Edit3 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="text-[10px] font-bold text-emerald-700 uppercase">Instruksi Misi Eksplorasi</span>
+                    </div>
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                      <p className="text-xs text-slate-700 whitespace-pre-line">{l.instruksiMisi}</p>
+                    </div>
+                  </div>
 
-          {l.refleksi && (
-            <div>
-              <h4 className="font-bold text-emerald-700 mb-2">Refleksi</h4>
-              <p className="text-xs text-slate-600 mb-2">{l.refleksi.instruksi || '-'}</p>
-              <ul className="list-disc list-inside text-xs text-slate-600 space-y-0.5">
-                {(l.refleksi.pertanyaan||[]).map((p, i) => <li key={i}>{p}</li>)}
-              </ul>
-            </div>
-          )}
+                  {/* Kalimat Rumpang Refleksi */}
+                  {(l.kalimatRumpang || []).length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Edit3 className="w-3.5 h-3.5 text-amber-600" />
+                        <span className="text-[10px] font-bold text-amber-700 uppercase">Panduan Refleksi — Kalimat Rumpang</span>
+                      </div>
+                      <div className="space-y-2">
+                        {(l.kalimatRumpang || []).map((kr, i) => (
+                          <div key={i} className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                            <p className="text-xs text-slate-700 italic">
+                              <span className="font-semibold">{i + 1}.</span> "{kr}"
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tipe Input — Ruang Karya */}
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Grid3x3 className="w-3.5 h-3.5 text-sky-600" />
+                      <span className="text-[10px] font-bold text-sky-700 uppercase">Ruang Karya</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      {l.tipeInput.sketsaGrid && (
+                        <div className="border border-slate-200 rounded-lg p-3">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <Grid3x3 className="w-3 h-3 text-slate-500" />
+                            <span className="text-[10px] font-bold text-slate-600 uppercase">Grid Sketsa Manual</span>
+                          </div>
+                          <div className="bg-white border border-dashed border-slate-300 rounded h-32 flex items-center justify-center">
+                            <p className="text-[10px] text-slate-400 text-center">Area sketsa manual<br/>(cetak dan gambar)</p>
+                          </div>
+                        </div>
+                      )}
+                      {l.tipeInput.fotoCetak && (
+                        <div className="border border-slate-200 rounded-lg p-3">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <Camera className="w-3 h-3 text-slate-500" />
+                            <span className="text-[10px] font-bold text-slate-600 uppercase">Foto Cetak</span>
+                          </div>
+                          <div className="bg-white border border-dashed border-slate-300 rounded h-32 flex items-center justify-center">
+                            <p className="text-[10px] text-slate-400 text-center">Tempel foto hasil<br/>eksplorasi di sini</p>
+                          </div>
+                        </div>
+                      )}
+                      {l.tipeInput.tautanDigital && (
+                        <div className="border border-slate-200 rounded-lg p-3">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <Link className="w-3 h-3 text-slate-500" />
+                            <span className="text-[10px] font-bold text-slate-600 uppercase">Tautan Digital</span>
+                          </div>
+                          <div className="space-y-2">
+                            <p className="text-[10px] text-slate-500">Upload ke {l.tipeInput.tautanDigital}:</p>
+                            <input
+                              type="text"
+                              placeholder={`Tempel tautan ${l.tipeInput.tautanDigital} di sini...`}
+                              className="w-full px-2 py-1.5 text-[10px] border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500/20 bg-white"
+                              readOnly
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </motion.div>
+          ))}
         </div>
       </DocumentViewer>
     );
@@ -103,7 +148,7 @@ export default function StepLKPD() {
       {state.loading && <LoadingProgress currentStep={6} loadingStep={state.loadingStep} />}
       {state.error && <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">{state.error}</div>}
 
-      {state.lkpd ? (
+      {state.lessonLkpds.length > 0 ? (
         <>
           {renderLKPD()}
           <button
@@ -115,14 +160,15 @@ export default function StepLKPD() {
         </>
       ) : (
         <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm text-center no-print">
-          <p className="text-sm text-slate-500 mb-3">LKPD belum di-generate</p>
+          <p className="text-sm text-slate-500 mb-1">LKPD & Asesmen per pertemuan belum di-generate</p>
+          <p className="text-xs text-slate-400 mb-4">Akan dibuatkan LKPD dan Rubrik Asesmen unik untuk setiap pertemuan</p>
           <button
-            onClick={generateLKPD}
+            onClick={generateModules}
             disabled={state.loading}
             className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2 mx-auto"
           >
             <Sparkles className="w-4 h-4" />
-            Generate LKPD
+            Generate LKPD & Asesmen Per Pertemuan
           </button>
         </div>
       )}

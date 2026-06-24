@@ -106,6 +106,12 @@ export const pipelineApi = {
       body: JSON.stringify({ pipelineId, ...data }),
     }),
 
+  generateModules: (pipelineId: number, data: any) =>
+    apiFetch<{ lessonLkpds: any[]; lessonAssessments: any[] }>('/api/pipeline/generate-modules', {
+      method: 'POST',
+      body: JSON.stringify({ pipelineId, ...data }),
+    }),
+
   getPipeline: (id: number) =>
     apiFetch<{ pipeline: any }>(`/api/pipeline/${id}`),
 

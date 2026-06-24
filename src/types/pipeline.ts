@@ -240,6 +240,36 @@ export interface KalenderConfig {
   catatanKalender: string;
 }
 
+// Per-meeting LKPD & Assessment (Point 6)
+export interface LessonLKPD {
+  lessonId: number;
+  pertemuanKe: number;
+  topik: string;
+  instruksiMisi: string;
+  kalimatRumpang: string[];
+  tipeInput: {
+    sketsaGrid: boolean;
+    fotoCetak: boolean;
+    tautanDigital: string;
+  };
+}
+
+export interface RubricItem {
+  aspek: string;
+  skor4: string;
+  skor3: string;
+  skor2: string;
+  skor1: string;
+}
+
+export interface LessonAssessment {
+  lessonId: number;
+  pertemuanKe: number;
+  topik: string;
+  fokusPenilaian: string;
+  rubrik: RubricItem[];
+}
+
 // Pipeline state untuk frontend
 export type PipelineStep = 0 | 1 | 2 | 3 | 4 | 5;
 export type SubStep = 0 | 1 | 2; // 0=AnalisisCP, 1=TP, 2=ATP
@@ -254,6 +284,8 @@ export interface PipelineState {
   modulAjar: ModulAjarData | null;
   lkpd: LKPDData | null;
   asesmenRubrik: AsesmenRubrikData | null;
+  lessonLkpds: LessonLKPD[];
+  lessonAssessments: LessonAssessment[];
   currentStep: PipelineStep;
   subStep: SubStep;
   loading: boolean;

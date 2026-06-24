@@ -12,6 +12,7 @@ export default function GuruDashboard({ onStartNew }: Props) {
   const { dispatch } = usePipeline();
   const [pipelines, setPipelines] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   const fetchPipelines = () => {
     setLoading(true);
@@ -23,6 +24,7 @@ export default function GuruDashboard({ onStartNew }: Props) {
   useEffect(() => { fetchPipelines(); }, []);
 
   const handleContinue = async (pipelineId: number) => {
+    setLoadError('');
     try {
       const res = await pipelineApi.getPipeline(pipelineId);
       const data = res as any;
@@ -47,12 +49,16 @@ export default function GuruDashboard({ onStartNew }: Props) {
           modulAjar: data.modulAjar,
           lkpd: data.lkpd,
           asesmenRubrik: data.asesmenRubrik,
+          lessonLkpds: data.lessonLkpds || [],
+          lessonAssessments: data.lessonAssessments || [],
           currentStep: (lastStep > 0 ? lastStep : 0) as any,
           subStep: 0,
           error: '',
         },
       });
-    } catch {} // ignore
+    } catch (e: any) {
+      setLoadError(e.message || 'Gagal memuat pipeline.');
+    }
   };
 
   const handleDelete = async (id: number) => {
@@ -87,6 +93,12 @@ export default function GuruDashboard({ onStartNew }: Props) {
           Buat Baru
         </button>
       </div>
+
+      {loadError && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+          {loadError}
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
